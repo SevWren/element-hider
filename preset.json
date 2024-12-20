@@ -1,0 +1,66 @@
+{
+  "presets": [
+    {
+      "name": "Bye Bye Ads",
+      "selectors": [
+        ".ads-single",
+        "#ads-single",
+        ".headerleft",
+        ".headerright",
+        "#topnavbar",
+        "#sidebar",
+        "#ads-bottom-player",
+        "#ads-popup",
+        "#footer",
+        ".filmaltiimg",
+        ".filmaltiaciklama",
+        ".yazitip"
+      ]
+    },
+    {
+      "name": "MM Mega Meh: Ads Be Gone",
+      "selectors": [".man", "#ads-singleman", ".headerleft"]
+    },
+    {
+      "name": "TM Tidy Meow: No Ads Allowed",
+      "selectors": [
+        ".advertisement",
+        ".ad-banner",
+        ".sponsored-content",
+        "#ad-container",
+        "div[class*='ad-']",
+        "div[id*='ad-']",
+        ".social-sharing",
+        ".newsletter-signup",
+        ".popup-overlay",
+        "#cookie-notice"
+      ]
+    },
+    {
+      "name": "Toni’s Terror Takedown",
+      "selectors": [
+        ".suggested-posts",
+        ".trending-section",
+        ".recommended-content",
+        "#related-articles",
+        ".share-buttons",
+        ".social-feed",
+        ".notification-bell",
+        ".engagement-panel"
+      ]
+    },
+    {
+      "name": "Ami’s Ad Assassin",
+      "selectors": [
+        ".sidebar",
+        "#comments-section",
+        ".author-bio",
+        ".related-posts",
+        ".promotional-content",
+        ".sticky-header",
+        ".floating-share-buttons",
+        "#recommendation-widget"
+      ]
+    }
+  ]
+}

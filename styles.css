@@ -1,0 +1,154 @@
+/* General Styles */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.container {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 300px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Header Section */
+.header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.header h1 {
+    font-size: 20px;
+    color: #b30000; /* Dark red for header text */
+    margin: 0 0 5px;
+}
+
+.header p {
+    font-size: 14px;
+    color: #777777;
+    margin: 0;
+}
+
+/* Label */
+.label {
+    display: block;
+    font-size: 14px;
+    color: #555555;
+    margin-bottom: 5px;
+}
+
+/* Input Fields */
+.input, .textarea, .button {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.input, .textarea {
+    font-size: 14px;
+    padding: 8px;
+    border: 1px solid #dddddd;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.textarea {
+    height: 120px;
+    resize: none;
+    font-family: monospace;
+}
+
+.input:focus, .textarea:focus {
+    outline: none;
+    border-color: #e60000; /* Bright red for focused input fields */
+}
+
+/* Help Text */
+.help-text {
+    font-size: 12px;
+    color: #888888;
+    margin-top: -5px;
+}
+
+/* Buttons */
+.button {
+    font-size: 14px;
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.button:hover {
+    opacity: 0.9;
+}
+
+.button.primary {
+    background-color: #e60000; /* Bright red for primary button */
+    color: #ffffff;
+}
+
+.button.primary:hover {
+    background-color: #cc0000; /* Slightly darker red on hover */
+}
+
+.button:not(.primary) {
+    background-color: #e0e0e0;
+    color: #555555;
+}
+
+.button:not(.primary):hover {
+    background-color: #d6d6d6;
+}
+
+/* Action Section */
+.action-section {
+    margin-top: 15px;
+}
+
+/* Save Button */
+.button.primary {
+    background-color: #e60000;
+    color: #ffffff;
+    position: relative;
+}
+
+.button.primary.saving {
+    background-color: #FFA500; /* Orange for saving state */
+    cursor: not-allowed;
+}
+
+.button.primary.success {
+    background-color: #cc0000; /* Slightly darker red for success state */
+}
+
+/* Spinner */
+.spinner {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 2px solid transparent;
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: translateY(-50%) rotate(0deg);
+    }
+    100% {
+        transform: translateY(-50%) rotate(360deg);
+    }
+}

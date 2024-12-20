@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Element Hider</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header Section -->
+      <div class="header">
+        <h1>Element Hider</h1>
+        <p>Easily manage unwanted elements on web pages.</p>
+      </div>
+
+      <!-- Preset Section -->
+      <div class="preset-section">
+        <label for="preset-select" class="label">Choose a Preset:</label>
+        <select id="preset-select" class="input">
+          <option value="">-- Select a preset --</option>
+        </select>
+      </div>
+
+      <!-- Custom Selectors Section -->
+      <div class="selectors-section">
+        <label for="selectors" class="label">Custom CSS Selectors:</label>
+        <textarea
+          id="selectors"
+          class="textarea"
+          placeholder="
+            .ads-single
+            #pop-up
+            iframe
+            footer
+            div.sponsored">
+        </textarea>
+        <small class="help-text">Enter one CSS selector per line.</small>
+      </div>
+
+      <!-- Save Button -->
+      <div class="action-section">
+        <button id="save" class="button primary">Save and Apply</button>
+      </div>
+      <div class="credit-section">
+        <p>Made with ❤️ by <a href="https://github.com/tmsoontornsing" target="_blank">TM Soontornsing</a></p>
+      </div>
+    </div>
+    <script src="popup.js" defer></script>
+  </body>
+</html>

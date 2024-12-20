@@ -1,0 +1,23 @@
+{
+    "manifest_version": 3,
+    "name": "Element Hider: TM's Masterpiece",
+    "version": "1.0",
+    "description": "Say goodbye to annoying elements—one selector at a time. Brought to you by TM Soontornsing, defender of clean browsing.",
+    "author": "TM Soontornsing",
+    "homepage_url": "https://github.com/tmsoontornsing",
+    "permissions": ["storage", "activeTab"],
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "icon16.png",
+        "48": "icon48.png",
+        "128": "icon128.png"
+      }
+    },
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["content.js"]
+      }
+    ]
+  }
