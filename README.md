@@ -45,9 +45,15 @@ cd element-hider
 * **styles.css**: Makes the popup look clean and modern
 * **manifest.json**: The heart of the extension, describing its functionality
 
-## 🌟 Coming Soon: Chrome Web Store
+~~## 🌟 Coming Soon: Chrome Web Store~~
 
-This extension will soon be available on the **Chrome Web Store** for easy installation. Once published, the link will be updated here! Stay tuned. 🛒
+~~This extension will soon be available on the **Chrome Web Store** for easy installation. Once published, the link will be updated here! Stay tuned. 🛒
+https://bit.ly/elementhider~~
+
+## 🌟 Available on the Chrome Web Store
+
+The **Element Hider: TM's Masterpiece** extension is now live and ready for installation! 🎉  
+[Install it from the Chrome Web Store](https://bit.ly/elementhider) and enjoy a cleaner, distraction-free browsing experience.
 
 ## 🛡️ License
 
