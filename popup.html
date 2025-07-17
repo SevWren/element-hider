@@ -38,10 +38,23 @@
         <small class="help-text">Enter one CSS selector per line.</small>
       </div>
 
-      <!-- Save Button -->
+      <!-- Settings Section -->
+      <div class="settings-section">
+        <div class="setting-item">
+            <input type="checkbox" id="persist-checkbox" class="checkbox" />
+            <label for="persist-checkbox" class="checkbox-label">
+              Hidden elements persist through page reload
+            </label>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
       <div class="action-section">
         <button id="save" class="button primary">Save and Apply</button>
+        <!-- NEW: Replaced checkbox with a destructive action button -->
+        <button id="clear-all" class="button danger">Clear All and Reset Page</button>
       </div>
+
       <div class="credit-section">
         <p>Made with ❤️ by <a href="https://github.com/tmsoontornsing" target="_blank">TM Soontornsing</a></p>
       </div>

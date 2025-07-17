@@ -31,6 +31,15 @@ body {
     margin: 0 0 5px;
 }
 
+.button.danger {
+    background-color: #d9534f; /* A clear, 'danger' red */
+    color: #ffffff;
+}
+
+.button.danger:hover {
+    background-color: #c9302c; /* Darker red on hover */
+}
+
 .header p {
     font-size: 14px;
     color: #777777;
