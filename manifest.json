@@ -1,35 +1,42 @@
 {
-    "manifest_version": 3,
-    "name": "Element Hider: TM's Masterpiece",
-    "version": "1.1",
-    "description": "Say goodbye to annoying elements—one selector at a time. Brought to you by TM Soontornsing, defender of clean browsing.",
-    "author": "TM Soontornsing",
-    "homepage_url": "https://github.com/tmsoontornsing",
-    "permissions": ["storage", "activeTab", "scripting"],
-    "background": {
-      "service_worker": "background.js"
+  "manifest_version": 3,
+  "name": "Element Hider: TM's Masterpiece",
+  "version": "1.01",
+  "description": "Say goodbye to annoying elements—one selector at a time. Brought to you by TM Soontornsing, defender of clean browsing.",
+  "author": "TM Soontornsing",
+  "homepage_url": "https://github.com/tmsoontornsing",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "commands": {
+    "toggle-picker-mode": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+X"
+      },
+      "description": "Activate element picker mode to hide an element by clicking it."
     },
-    "commands": {
-      "toggle-picker-mode": {
-        "suggested_key": {
-          "default": "Ctrl+Shift+E",
-          "mac": "Command+Shift+X"
-        },
-        "description": "Activate element picker mode to hide an element by clicking it."
-      }
-    },
-    "action": {
-      "default_popup": "popup.html",
-      "default_icon": {
-        "16": "icon16.png",
-        "48": "icon48.png",
-        "128": "icon128.png"
-      }
-    },
-    "content_scripts": [
-      {
-        "matches": ["<all_urls>"],
-        "js": ["content.js"]
-      }
-    ]
+    "revert-last-action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Z",
+        "mac": "Command+Shift+Z"
+      },
+      "description": "Revert the last element hidden with the picker tool."
+    }
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
 }
