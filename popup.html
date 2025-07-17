@@ -1,28 +1,46 @@
 <!DOCTYPE html>
+<!-- 
+  POPUP.HTML - Element Hider Extension
+  
+  This file defines the user interface for the Element Hider Chrome extension.
+  It provides controls for managing CSS selectors that identify elements to be hidden.
+  The actual hiding logic is implemented in content.js and applied through background.js.
+-->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Element Hider</title>
+
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="container">
-      <!-- Header Section -->
+
       <div class="header">
         <h1>Element Hider</h1>
         <p>Easily manage unwanted elements on web pages.</p>
       </div>
 
-      <!-- Preset Section -->
+      <!-- 
+        PRESET SECTION
+        Allows users to quickly apply predefined sets of selectors for common use cases.
+        Presets are defined in popup.js and can target common ad containers, banners, etc.
+      -->
       <div class="preset-section">
         <label for="preset-select" class="label">Choose a Preset:</label>
         <select id="preset-select" class="input">
           <option value="">-- Select a preset --</option>
+          <!-- Populated dynamically by popup.js with predefined selector sets -->
         </select>
       </div>
 
-      <!-- Custom Selectors Section -->
+      <!-- 
+        CUSTOM SELECTORS SECTION
+        The core interface for entering CSS selectors that identify elements to hide.
+        Each line in the textarea represents a separate CSS selector.
+        These selectors are used by content.js to apply 'display: none !important' to matching elements.
+      -->
       <div class="selectors-section">
         <label for="selectors" class="label">Custom CSS Selectors:</label>
         <textarea
@@ -34,6 +52,11 @@
             iframe
             footer
             div.sponsored">
+          <!-- 
+            Example placeholders show common element types that users might want to hide.
+            These are just examples - users can enter any valid CSS selector.
+            Each selector will be used to find and hide matching elements on the page.
+          -->
         </textarea>
         <small class="help-text">Enter one CSS selector per line.</small>
       </div>
@@ -41,6 +64,12 @@
       <!-- Settings Section -->
       <div class="settings-section">
         <div class="setting-item">
+            <!-- 
+              PERSISTENCE CHECKBOX
+              When checked, hidden elements will remain hidden after page reloads.
+              This is implemented by saving selectors to chrome.storage.local.
+              When unchecked, hidden elements will reappear after page refresh.
+            -->
             <input type="checkbox" id="persist-checkbox" class="checkbox" />
             <label for="persist-checkbox" class="checkbox-label">
               Hidden elements persist through page reload
@@ -48,10 +77,23 @@
         </div>
       </div>
 
-      <!-- Action Buttons -->
+      <!-- 
+        ACTION BUTTONS
+        Controls for applying or clearing the element hiding rules.
+      -->
       <div class="action-section">
+        <!-- 
+          SAVE BUTTON
+          Applies the current set of selectors to hide matching elements.
+          Sends the selectors to content.js via chrome.runtime messaging.
+        -->
         <button id="save" class="button primary">Save and Apply</button>
-        <!-- NEW: Replaced checkbox with a destructive action button -->
+        
+        <!-- 
+          CLEAR ALL BUTTON
+          Removes all hidden elements and clears the current selector list.
+          Triggers a page refresh to restore all previously hidden elements.
+        -->
         <button id="clear-all" class="button danger">Clear All and Reset Page</button>
       </div>
 
@@ -59,6 +101,17 @@
         <p>Made with ❤️ by <a href="https://github.com/tmsoontornsing" target="_blank">TM Soontornsing</a></p>
       </div>
     </div>
+
+    <!-- 
+      POPUP.JS SCRIPT
+      Handles all the interactive behavior of the popup:
+      - Loading/saving selectors from/to chrome.storage
+      - Applying selectors to the current page
+      - Managing presets and settings
+      - Communication with background.js and content.js
+      
+      The 'defer' attribute ensures the script runs after the HTML is fully parsed.
+    -->
     <script src="popup.js" defer></script>
   </body>
 </html>

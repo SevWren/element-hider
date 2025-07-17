@@ -2,9 +2,8 @@
  * @fileoverview Background script for the Element Hider Chrome extension.
  * This script serves as the extension's event handler for keyboard shortcuts and manages
  * communication between the browser action and content scripts.
- */
-
-/**
+ * 
+ * 
  * Handles keyboard commands from the extension and forwards them to the active tab's content script.
  * This is the main entry point for all keyboard-triggered actions in the extension.
  * 
@@ -21,8 +20,6 @@
  *   }
  * });
  *
- * @see {@link https://developer.chrome.com/docs/extensions/reference/commands/|Chrome Commands API}
- * @see {@link https://developer.chrome.com/docs/extensions/mv3/messaging/|Chrome Extension Messaging}
  */
 
 chrome.commands.onCommand.addListener((command, tab) => {

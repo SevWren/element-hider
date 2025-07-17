@@ -1,15 +1,20 @@
 /**
- * Popup script for Element Hider extension.
- * Handles the popup UI, user interactions, and communication with content scripts.
- * @module popup
+ * @fileoverview Script for the Element Hider extension's popup UI (popup.html).
+ *
+ * This script handles all user interactions within the popup, including:
+ * - Loading and managing presets from `preset.json`.
+ * - Loading and displaying saved selectors from `chrome.storage`.
+ * - Handling user input in the textarea.
+ * - Saving settings and selectors to `chrome.storage`.
+ * - Communicating with the `content.js` script on the active tab to apply changes in real-time.
  */
 
 /**
- * Main initialization function that runs when the popup DOM is loaded.
- * Sets up event listeners and loads saved data.
+ * Main initialization function that runs when the popup's DOM is fully loaded.
+ * It sets up all necessary event listeners and loads the initial state from storage and presets.
  * @listens DOMContentLoaded
- * @returns {void}
  */
+
 document.addEventListener('DOMContentLoaded', () => {
     /** @type {Array<{name: string, selectors: string[]}>|null} */
     let presets = null;
