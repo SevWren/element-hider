@@ -1,6 +1,17 @@
-// sevwren-element-hider/popup.js (Complete File with All Modifications)
+/**
+ * Popup script for Element Hider extension.
+ * Handles the popup UI, user interactions, and communication with content scripts.
+ * @module popup
+ */
 
+/**
+ * Main initialization function that runs when the popup DOM is loaded.
+ * Sets up event listeners and loads saved data.
+ * @listens DOMContentLoaded
+ * @returns {void}
+ */
 document.addEventListener('DOMContentLoaded', () => {
+    /** @type {Array<{name: string, selectors: string[]}>|null} */
     let presets = null;
     const selectorsArea = document.getElementById('selectors');
     const selectElement = document.getElementById('preset-select');
@@ -9,7 +20,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Get the new "Clear All" button
     const clearAllButton = document.getElementById('clear-all');
 
-    // Load presets from the JSON file
+    /**
+     * Fetches and loads presets from the preset.json file.
+     * Populates the preset dropdown with the loaded presets.
+     * @async
+     * @returns {Promise<void>}
+     */
     fetch('preset.json')
       .then(response => response.json())
       .then(data => {
@@ -24,7 +40,11 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .catch(error => console.error('Error loading presets:', error));
 
-    // Load saved user data (selectors and persistence setting) when the popup opens
+    /**
+     * Loads saved user data (selectors and persistence setting) when the popup opens.
+     * @param {Object} result - The saved data from Chrome's storage
+     * @returns {void}
+     */
     chrome.storage.local.get(['selectors', 'isPersistenceEnabled'], result => {
         if (result.selectors) {
           selectorsArea.value = result.selectors.join('\n');
@@ -33,13 +53,23 @@ document.addEventListener('DOMContentLoaded', () => {
         persistCheckbox.checked = result.isPersistenceEnabled !== false;
     });
 
-    // Add listener for the persistence checkbox
+    /**
+     * Handles changes to the persistence checkbox.
+     * Saves the new persistence setting to Chrome's storage.
+     * @listens change
+     * @returns {void}
+     */
     persistCheckbox.addEventListener('change', () => {
         // Save the new state whenever it's toggled
         chrome.storage.local.set({ isPersistenceEnabled: persistCheckbox.checked });
     });
 
-    // Add listener for the "Clear All" button
+    /**
+     * Handles the "Clear All" button click.
+     * Confirms with the user before clearing all saved selectors.
+     * @listens click
+     * @returns {void}
+     */
     clearAllButton.addEventListener('click', () => {
         // Use a confirmation dialog to prevent accidental deletion of all data
         if (confirm('Are you sure you want to permanently delete all saved selectors? This cannot be undone.')) {
@@ -65,7 +95,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Add listener for the preset dropdown
+    /**
+     * Handles changes to the preset dropdown.
+     * Loads the selected preset's selectors into the textarea.
+     * @listens change
+     * @param {Event} event - The change event
+     * @returns {void}
+     */
     selectElement.addEventListener('change', event => {
         const selectedPreset = presets?.find(p => p.name === event.target.value);
         if (selectedPreset) {
@@ -73,7 +109,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Add listener for the "Save and Apply" button
+    /**
+     * Handles the "Save and Apply" button click.
+     * Saves the current selectors to storage and applies them to the current page.
+     * @listens click
+     * @returns {void}
+     */
     saveButton.addEventListener('click', () => {
         const selectorsText = selectorsArea.value;
         const selectors = selectorsText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
