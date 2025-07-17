@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "(Debug)Element Hider: TM's Masterpiece",
+    "name": "Element Hider: TM's Masterpiece",
     "version": "1.1",
-    "description": "(Debug)Say goodbye to annoying elements—one selector at a time. Brought to you by TM Soontornsing, defender of clean browsing.",
+    "description": "Say goodbye to annoying elements—one selector at a time. Brought to you by TM Soontornsing, defender of clean browsing.",
     "author": "TM Soontornsing",
     "homepage_url": "https://github.com/tmsoontornsing",
     "permissions": ["storage", "activeTab", "scripting"],

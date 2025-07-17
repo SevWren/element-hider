@@ -7,6 +7,9 @@ Element Hider is a lightweight, user-friendly Chrome extension that allows you t
 ## 🎉 Features
 
 * **Custom CSS Selectors**: Enter your own CSS selectors to hide specific elements.
+* **One-Click Element Hiding**: Press `Ctrl+Shift+E` (Windows/Linux) or `Cmd+Shift+X` (Mac) to activate the element picker and click on any element to hide it.
+* **Persistence Controls**: Choose whether hidden elements stay hidden after page reloads.
+* **Quick Reset**: One-click removal of all hidden elements.
 * **Preset Management**: Choose from predefined sets of selectors for common annoyances like ads, pop-ups, or social media distractions.
 * **Real-Time Updates**: Changes are applied immediately to the current tab.
 * **Clean Interface**: Minimalistic popup design with easy-to-use options.
@@ -16,6 +19,13 @@ Element Hider is a lightweight, user-friendly Chrome extension that allows you t
 1. **Define Selectors**: Add CSS selectors for elements you want to hide (e.g., .ads, #popups).
 2. **Choose a Preset**: Use prebuilt presets for common annoyances or create your own.
 3. **Save and Apply**: Click the Save and Apply button, and watch unwanted elements disappear!
+4. **Zap Elements**:
+   - Use the hotkey `Ctrl+Shift+E` and click any element to hide it.  (Customizable in 
+   Chrome settings at `chrome://extensions/shortcuts`)
+5. **Manage Elements**:
+   - Toggle persistence to keep elements hidden across page reloads.
+   - Click "Clear All" to reset the page to its original state.
+   - Use presets for common annoyances or create your own.
 
 ## 🛠️ How to Install Locally
 
@@ -74,5 +84,10 @@ If you have questions, feedback, or just want to connect, feel free to reach out
 * **Email**: tmsoontornsing@gmail.com
 
 🎉 **Enjoy a cleaner, distraction-free browsing experience with Element Hider!**
+
+## 🤝 Contributors
+
+* **Sevwren**: [http://github.com/sevWren](http://github.com/sevWren)
+
 
 Let me know if you'd like any other changes or additions! 😊
