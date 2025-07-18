@@ -15,138 +15,161 @@
  * @listens DOMContentLoaded
  */
 
-document.addEventListener('DOMContentLoaded', () => {
-    /** @type {Array<{name: string, selectors: string[]}>|null} */
-    let presets = null;
-    const selectorsArea = document.getElementById('selectors');
-    const selectElement = document.getElementById('preset-select');
-    const saveButton = document.getElementById('save');
-    const persistCheckbox = document.getElementById('persist-checkbox');
-    // Get the new "Clear All" button
-    const clearAllButton = document.getElementById('clear-all');
-
-    /**
-     * Fetches and loads presets from the preset.json file.
-     * Populates the preset dropdown with the loaded presets.
+/**
+     * Gets the current hostname from the active tab. This is the key for storage.
      * @async
-     * @returns {Promise<void>}
+     * @returns {Promise<string>} The hostname of the active tab's URL (e.g., 'www.example.com').
      */
-    fetch('preset.json')
-      .then(response => response.json())
-      .then(data => {
-        presets = data.presets;
-        // Populate the dropdown with presets
-        presets.forEach(preset => {
-            const option = document.createElement('option');
-            option.value = preset.name;
-            option.textContent = preset.name;
-            selectElement.appendChild(option);
+async function getCurrentDomainFromActiveTab() {
+    return new Promise(resolve => {
+        chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+            if (tabs.length > 0 && tabs[0].url) {
+                try {
+                    const url = new URL(tabs[0].url);
+                    // Use the full hostname as the key. It's simple and reliable.
+                    if (url.protocol.startsWith('chrome')) {
+                        resolve('chrome-internal');
+                    } else if (url.protocol === 'file:') {
+                        resolve('file-local');
+                    } else {
+                        resolve(url.hostname); 
+                    }
+                } catch (e) {
+                    console.error('Error parsing URL:', e);
+                    resolve('unknown-domain');
+                }
+            } else {
+                resolve('no-active-tab');
+            }
         });
-      })
-      .catch(error => console.error('Error loading presets:', error));
+    });
+}
+document.addEventListener('DOMContentLoaded', () => {
+/** @type {Array<{name: string, selectors: string[]}>|null} */
+let presets = null;
+const selectorsArea = document.getElementById('selectors');
+const selectElement = document.getElementById('preset-select');
+const saveButton = document.getElementById('save');
+const persistCheckbox = document.getElementById('persist-checkbox');
+const clearAllButton = document.getElementById('clear-all');
 
-    /**
-     * Loads saved user data (selectors and persistence setting) when the popup opens.
-     * @param {Object} result - The saved data from Chrome's storage
-     * @returns {void}
-     */
+/**
+ * Fetches and loads presets from the preset.json file.
+ * Populates the preset dropdown with the loaded presets.
+ * @async
+ * @returns {Promise<void>}
+ */
+fetch('preset.json')
+  .then(response => response.json())
+  .then(data => {
+    presets = data.presets;
+    presets.forEach(preset => {
+        const option = document.createElement('option');
+        option.value = preset.name;
+        option.textContent = preset.name;
+        selectElement.appendChild(option);
+    });
+  })
+  .catch(error => console.error('Error loading presets:', error));
+
+/**
+ * Loads saved user data (selectors and persistence setting) when the popup opens.
+ */
+getCurrentDomainFromActiveTab().then(currentDomain => {
     chrome.storage.local.get(['selectors', 'isPersistenceEnabled'], result => {
-        if (result.selectors) {
-          selectorsArea.value = result.selectors.join('\n');
-        }
-        // Default to 'true' (checked) if the setting has never been saved
+        const allSelectors = result.selectors || {};
+        const domainSelectors = allSelectors[currentDomain] || [];
+        selectorsArea.value = domainSelectors.join('\n');
         persistCheckbox.checked = result.isPersistenceEnabled !== false;
     });
+});
 
-    /**
-     * Handles changes to the persistence checkbox.
-     * Saves the new persistence setting to Chrome's storage.
-     * @listens change
-     * @returns {void}
-     */
-    persistCheckbox.addEventListener('change', () => {
-        // Save the new state whenever it's toggled
-        chrome.storage.local.set({ isPersistenceEnabled: persistCheckbox.checked });
-    });
+/**
+ * Handles changes to the persistence checkbox.
+ */
+persistCheckbox.addEventListener('change', () => {
+    chrome.storage.local.set({ isPersistenceEnabled: persistCheckbox.checked });
+});
 
-    /**
-     * Handles the "Clear All" button click.
-     * Confirms with the user before clearing all saved selectors.
-     * @listens click
-     * @returns {void}
-     */
-    clearAllButton.addEventListener('click', () => {
-        // Use a confirmation dialog to prevent accidental deletion of all data
-        if (confirm('Are you sure you want to permanently delete all saved selectors? This cannot be undone.')) {
-            
-            // 1. Clear the selectors array in Chrome's storage
-            chrome.storage.local.set({ selectors: [] }, () => {
-                
-                // 2. Clear the textarea in the popup UI to reflect the change
-                selectorsArea.value = '';
-                console.log('All saved selectors have been deleted.');
+/**
+ * Handles the "Clear All" button click for the current domain.
+ */
+clearAllButton.addEventListener('click', () => {
+    if (confirm('Are you sure you want to delete all selectors for this domain? This cannot be undone.')) {
+        getCurrentDomainFromActiveTab().then(currentDomain => {
+            chrome.storage.local.get(['selectors'], result => {
+                const allSelectors = result.selectors || {};
+                delete allSelectors[currentDomain];
 
-                // 3. Send a message to the content script on the active page to clear its styles
+                chrome.storage.local.set({ selectors: allSelectors }, () => {
+                    selectorsArea.value = '';
+                    console.log(`Selectors for ${currentDomain} have been cleared.`);
+
+                    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+                        if (tabs.length > 0 && tabs[0].id) {
+                            chrome.tabs.sendMessage(tabs[0].id, {
+                                action: 'updateSelectors',
+                                selectors: allSelectors 
+                            }, () => {
+                                if (chrome.runtime.lastError) {
+                                    console.warn("Element Hider: Could not send message to content script. It might not be injected on this page.");
+                                }
+                            });
+                        }
+                    });
+                });
+            });
+        });
+    }
+});
+
+/**
+ * Handles changes to the preset dropdown.
+ */
+selectElement.addEventListener('change', event => {
+    const selectedPreset = presets?.find(p => p.name === event.target.value);
+    if (selectedPreset) {
+      selectorsArea.value = selectedPreset.selectors.join('\n');
+    }
+});
+
+/**
+ * Handles the "Save and Apply" button click.
+ */
+saveButton.addEventListener('click', () => {
+    const selectorsText = selectorsArea.value;
+    const selectors = selectorsText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+
+    saveButton.textContent = 'Saving...';
+    saveButton.classList.add('saving');
+    saveButton.disabled = true;
+
+    getCurrentDomainFromActiveTab().then(currentDomain => {
+        chrome.storage.local.get(['selectors'], result => {
+            const allSelectors = result.selectors || {};
+            allSelectors[currentDomain] = selectors; 
+
+            chrome.storage.local.set({ selectors: allSelectors }, () => {
                 chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-                    if (tabs.length > 0) {
-                        // Re-using the 'updateSelectors' action with an empty array effectively resets the page
-                        chrome.tabs.sendMessage(tabs[0].id, {
-                            action: 'updateSelectors',
-                            selectors: [] // An empty array tells content.js to hide nothing
+                    if (tabs.length > 0 && tabs[0].id) {
+                        chrome.tabs.sendMessage(tabs[0].id, { action: 'updateSelectors', selectors: allSelectors }, () => {
+                            if (chrome.runtime.lastError) {
+                                console.warn("Element Hider: Could not send message to content script. Settings were saved but not applied in real-time.");
+                            }
+                            
+                            saveButton.classList.remove('saving');
+                            saveButton.classList.add('success');
+                            saveButton.textContent = 'Saved!';
+                            setTimeout(() => {
+                                saveButton.textContent = 'Save and Apply';
+                                saveButton.classList.remove('success');
+                                saveButton.disabled = false;
+                            }, 1500);
                         });
                     }
                 });
             });
-        }
-    });
-
-    /**
-     * Handles changes to the preset dropdown.
-     * Loads the selected preset's selectors into the textarea.
-     * @listens change
-     * @param {Event} event - The change event
-     * @returns {void}
-     */
-    selectElement.addEventListener('change', event => {
-        const selectedPreset = presets?.find(p => p.name === event.target.value);
-        if (selectedPreset) {
-          selectorsArea.value = selectedPreset.selectors.join('\n');
-        }
-    });
-
-    /**
-     * Handles the "Save and Apply" button click.
-     * Saves the current selectors to storage and applies them to the current page.
-     * @listens click
-     * @returns {void}
-     */
-    saveButton.addEventListener('click', () => {
-        const selectorsText = selectorsArea.value;
-        const selectors = selectorsText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
-
-        // UI feedback for saving
-        saveButton.textContent = 'Saving...';
-        saveButton.classList.add('saving');
-        saveButton.disabled = true;
-
-        // Save the new selectors list to storage
-        chrome.storage.local.set({ selectors: selectors }, () => {
-          // Notify the active tab to apply the new rules immediately
-          chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-            if (tabs.length > 0) {
-              chrome.tabs.sendMessage(tabs[0].id, { action: 'updateSelectors', selectors: selectors }, () => {
-                // Restore button state after completion
-                saveButton.classList.remove('saving');
-                saveButton.classList.add('success');
-                saveButton.textContent = 'Saved!';
-                setTimeout(() => {
-                  saveButton.textContent = 'Save and Apply';
-                  saveButton.classList.remove('success');
-                  saveButton.disabled = false;
-                }, 1500);
-              });
-            }
-          });
         });
     });
+});
 });
