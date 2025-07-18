@@ -5,13 +5,6 @@
  * It communicates with the `background.js` service worker to receive commands triggered by hotkeys
  * and with the `popup.js` script to receive updated selector lists.
  */
-
-/**
- * The entire script is wrapped in an Immediately Invoked Function Expression (IIFE) `(function() { ... })();`.
- * This creates a private scope, preventing its variables and functions (`DEBUG`, `logger`, `Picker`, etc.)
- * from polluting the global `window` object of the web page it's injected into. This is a critical
- * best practice for content scripts to avoid conflicts with the page's own JavaScript.
- */
 (function() {
     'use strict';
 
@@ -30,8 +23,21 @@
     const logger = {
         log: (...args) => DEBUG && console.log('Element Hider:', ...args),
         warn: (...args) => DEBUG && console.warn('Element Hider:', ...args),
-        error: (...args) => console.error('Element Hider:', ...args), // Errors are always logged.
+        error: (...args) => console.error('Element Hider:', ...args),
     };
+
+    /**
+     * Extracts the current hostname from `window.location.hostname`.
+     * This is used as the key for storing and retrieving selectors, ensuring rules are
+     * specific to the exact hostname (e.g., 'www.example.com' is distinct from 'app.example.com').
+     * @returns {string} The hostname of the current page.
+     */
+    function getCurrentDomain() {
+        if (window.location.protocol === 'file:') {
+            return 'file://';
+        }
+        return window.location.hostname;
+    }
 
     /**
      * A session-specific history stack for the element picker tool.
@@ -46,9 +52,7 @@
      * Injects or updates a `<style>` tag in the document's `<head>` to hide elements.
      * This function uses a "nuke and pave" approach: it completely removes any pre-existing
      * style tag managed by this extension before creating a new one. This ensures maximum
-     * compatibility with modern frameworks (React, Vue, etc.) that might ignore simple
-     * `textContent` updates to a "zombie" style tag.
-     *
+     * compatibility with modern frameworks (React, Vue, etc.).
      * @param {string[]} selectors - An array of CSS selectors for elements to be hidden.
      * @returns {void}
      */
@@ -58,7 +62,7 @@
             style.remove();
         }
         if (!selectors || selectors.length === 0) {
-            return; // Exit if there are no selectors to apply.
+            return;
         }
         style = document.createElement('style');
         style.id = 'element-hider-style';
@@ -70,18 +74,17 @@
     /**
      * A module encapsulating all logic for the Element Picker feature.
      * Follows the IIFE module pattern to create a private scope for its state
-     * (`isPickerModeActive`, `highlightElement`) and internal functions, exposing
-     * only a clean public API (`activate`, `deactivate`, `isActive`).
-     *
+     * and internal functions, exposing only a clean public API.
      * @returns {{activate: function, deactivate: function, isActive: function}}
      */
     const Picker = (function() {
         let isPickerModeActive = false;
         let highlightElement = null;
+        let traversalHistory = []; // NEW: History stack for bidirectional traversal
 
         /**
          * Throttles a function to limit its execution rate.
-         * Crucial for performance on high-frequency events like `mouseover`.
+         * Crucial for performance on high-frequency events like `mouseover` and `wheel`.
          * @param {function} func - The function to throttle.
          * @param {number} limit - The minimum time in milliseconds between executions.
          * @returns {function} The new throttled function.
@@ -109,17 +112,14 @@
             logger.log(`Key press (${event.key}) detected. Cancelling selection.`);
             deactivate();
         }
-        
+
         /**
-         * Unified mouse event handler using `async/await` for robust, sequential operation.
-         * It handles both confirming a selection (left-click) and canceling (any other mouse button).
-         * Using `mousedown` is more reliable than `click` on complex websites that may stop event propagation.
+         * Unified mouse event handler for confirming or canceling a selection.
          * @param {MouseEvent} event - The mouse event object.
          */
         async function handleMouseAction(event) {
             event.preventDefault();
             event.stopPropagation();
-            // Cancel if not a primary (left) click.
             if (event.button !== 0) {
                 logger.log(`Mouse button ${event.button} press detected. Cancelling selection.`);
                 deactivate();
@@ -129,50 +129,94 @@
             logger.log('Left mouse press CONFIRMED selection.');
             const clickedElement = event.target;
             const selector = generateSelector(clickedElement);
-            
-            try {
-                // AWAIT ensures each step completes before the next one starts.
-                const result = await chrome.storage.local.get({ selectors: [] });
-                const existingSelectors = result.selectors || [];
 
-                if (!existingSelectors.includes(selector)) {
-                    const newSelectors = [...existingSelectors, selector];
-                    await chrome.storage.local.set({ selectors: newSelectors });
-                    updateHiddenElements(newSelectors);
-                    pickerActionHistory.push(selector); // Add to session history for revert feature.
-                    logger.log('Selector saved and applied:', selector);
+            try {
+                const result = await chrome.storage.local.get({ selectors: {} });
+                const allSelectors = result.selectors || {};
+                const currentDomain = getCurrentDomain();
+                const domainSelectors = allSelectors[currentDomain] || [];
+
+                if (!domainSelectors.includes(selector)) {
+                    const newDomainSelectors = [...domainSelectors, selector];
+                    const newAllSelectors = {
+                        ...allSelectors,
+                        [currentDomain]: newDomainSelectors
+                    };
+                    await chrome.storage.local.set({ selectors: newAllSelectors });
+                    updateHiddenElements(newDomainSelectors);
+                    pickerActionHistory.push(selector);
+                    logger.log('Selector saved and applied for domain:', currentDomain, selector);
                 } else {
-                    logger.log('Selector already exists.');
+                    logger.log('Selector already exists for domain:', currentDomain, selector);
                 }
             } catch (error) {
                 logger.error("An error occurred while handling the click.", error);
             } finally {
-                // Deactivate the picker mode AFTER all async work is done.
                 deactivate();
             }
         }
-        
-        /** A throttled version of the mouseover handler for performance. */
+
+        /**
+         * Handles bidirectional mouse wheel scrolling to traverse the DOM tree.
+         * @param {WheelEvent} event - The wheel event object.
+         */
+        const handleWheel = throttle((event) => {
+            event.preventDefault();
+            if (!highlightElement || !isPickerModeActive) return;
+
+            // Scrolling UP (negative deltaY)
+            if (event.deltaY < 0) {
+                const parent = highlightElement.parentElement;
+                if (parent && parent !== document.documentElement) {
+                    traversalHistory.push(highlightElement); // Save current element before moving up
+                    highlightElement.style.outline = '';
+                    highlightElement = parent;
+                    highlightElement.style.outline = '2px solid #e60000';
+                    logger.log('Scrolled UP to parent:', generateSelector(highlightElement));
+                } else {
+                    logger.log('At root, cannot scroll up further.');
+                }
+            }
+            // Scrolling DOWN (positive deltaY)
+            else if (event.deltaY > 0) {
+                if (traversalHistory.length > 0) {
+                    const child = traversalHistory.pop(); // Get the last element we came from
+                    highlightElement.style.outline = '';
+                    highlightElement = child;
+                    highlightElement.style.outline = '2px solid #e60000';
+                    logger.log('Scrolled DOWN to child:', generateSelector(highlightElement));
+                } else {
+                    logger.log('At base of traversal, cannot scroll down further.');
+                }
+            }
+        }, 100);
+
+        /**
+         * Throttled mouseover handler for initial element highlighting.
+         * CRITICAL: Resets the traversal history whenever a new element is hovered.
+         */
         const throttledMouseOver = throttle((event) => {
             if (highlightElement) {
                 highlightElement.style.outline = '';
             }
             highlightElement = event.target;
             highlightElement.style.outline = '2px solid #e60000';
+            // Reset history whenever the mouse selects a new base element.
+            traversalHistory = [];
         }, 50);
 
-        /** Event handler to clear the highlight when the mouse leaves an element. */
+        /**
+         * Clears highlight when the mouse leaves an element.
+         */
         function handleMouseOut(event) {
-            if (event.target) {
-                event.target.style.outline = '';
+            if (event.target && event.target === highlightElement) {
+                highlightElement.style.outline = '';
+                highlightElement = null;
             }
         }
 
         /**
          * Generates a robust and specific CSS selector for a given DOM element.
-         * Prioritizes stable attributes (`data-testid`, `id`) before falling back to a
-         * path-based selector with escaped class names and `nth-of-type` for precision.
-         * Escaping is critical to handle modern CSS frameworks (e.g., Tailwind).
          * @param {Element} el - The DOM element to generate a selector for.
          * @returns {string} The generated CSS selector.
          */
@@ -210,21 +254,25 @@
             return path.join(' > ');
         }
 
-        // --- Publicly Exposed Methods of the Picker Module ---
-
-        /** Activates the element picker mode, adding all necessary event listeners. */
+        /**
+         * Activates the element picker mode.
+         */
         function activate() {
             if (isPickerModeActive) return;
             isPickerModeActive = true;
+            traversalHistory = []; // Ensure clean state on activation
             document.body.style.cursor = 'crosshair';
             document.addEventListener('mouseover', throttledMouseOver);
             document.addEventListener('mouseout', handleMouseOut);
             document.addEventListener('keydown', handleKeydownCancel, { capture: true });
             document.addEventListener('mousedown', handleMouseAction, { capture: true });
+            document.addEventListener('wheel', handleWheel, { capture: true, passive: false });
             logger.log('Picker mode ACTIVATED.');
         }
 
-        /** Deactivates the element picker mode, cleaning up all event listeners. */
+        /**
+         * Deactivates the element picker mode.
+         */
         function deactivate() {
             if (!isPickerModeActive) return;
             isPickerModeActive = false;
@@ -237,64 +285,72 @@
             document.removeEventListener('mouseout', handleMouseOut);
             document.removeEventListener('keydown', handleKeydownCancel, { capture: true });
             document.removeEventListener('mousedown', handleMouseAction, { capture: true });
+            document.removeEventListener('wheel', handleWheel, { capture: true });
             logger.log('Picker mode DEACTIVATED.');
         }
 
         return { activate, deactivate, isActive: () => isPickerModeActive };
     })();
 
-    // --- 4. Main Execution and Event Handling ---
-    
-    // Original auto-clicker for legacy support on specific sites.
-    function checkInitialElement(targetSelector, actionCallback) { document.querySelectorAll(targetSelector).forEach(actionCallback); }
-    function clickTargetElement(targetElement) { targetElement.click(); }
-
-    /** Initializes the extension's state on page load. */
+    /**
+     * Initializes the extension's state on page load.
+     */
     async function initialize() {
         try {
             const result = await chrome.storage.local.get(['selectors', 'isPersistenceEnabled']);
             const shouldPersist = result.isPersistenceEnabled !== false;
-            if (shouldPersist && result.selectors && result.selectors.length > 0) {
-                updateHiddenElements(result.selectors);
+            const currentDomain = getCurrentDomain();
+            const domainSelectors = result.selectors?.[currentDomain] || [];
+
+            if (shouldPersist && domainSelectors.length > 0) {
+                updateHiddenElements(domainSelectors);
             }
         } catch (error) {
             logger.error("Failed to initialize.", error);
         }
-        checkInitialElement('.btn.btn-skip', clickTargetElement);
     }
-    
+
     /**
      * Reverts the last element hidden by the picker tool.
-     * It pops the last-added selector from the session history stack, removes it
-     * from the master list in `chrome.storage.local`, and updates the page styles.
-     * @returns {Promise<void>}
      */
     async function revertLastAction() {
         if (pickerActionHistory.length === 0) {
-            logger.warn("No actions in session history to revert.");
+            logger.warn("No actions in session history to revert. NormalMSG");
             return;
         }
         const selectorToRevert = pickerActionHistory.pop();
         logger.log("Reverting selector:", selectorToRevert);
         try {
-            const result = await chrome.storage.local.get({ selectors: [] });
-            const newSelectors = (result.selectors || []).filter(s => s !== selectorToRevert);
-            await chrome.storage.local.set({ selectors: newSelectors });
-            updateHiddenElements(newSelectors);
+            const result = await chrome.storage.local.get({ selectors: {} });
+            const allSelectors = result.selectors || {};
+            const currentDomain = getCurrentDomain();
+            let domainSelectors = allSelectors[currentDomain] || [];
+            const newDomainSelectors = domainSelectors.filter(s => s !== selectorToRevert);
+
+            if (newDomainSelectors.length === 0) {
+                delete allSelectors[currentDomain];
+            } else {
+                allSelectors[currentDomain] = newDomainSelectors;
+            }
+
+            await chrome.storage.local.set({ selectors: allSelectors });
+            updateHiddenElements(newDomainSelectors);
         } catch (error) {
             logger.error("Error during revert action:", error);
-            pickerActionHistory.push(selectorToRevert); // Push back on failure.
+            pickerActionHistory.push(selectorToRevert);
         }
     }
 
     /**
-     * Main message listener for commands from `background.js` (hotkeys) and `popup.js`.
+     * Main message listener for commands from `background.js` and `popup.js`.
      */
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (request.action === 'updateSelectors') {
-            pickerActionHistory = []; // Manual update from popup clears session history.
+            pickerActionHistory = [];
             logger.log("Session history cleared due to manual update from popup.");
-            updateHiddenElements(request.selectors);
+            const currentDomain = getCurrentDomain();
+            const domainSelectors = request.selectors?.[currentDomain] || [];
+            updateHiddenElements(domainSelectors);
             sendResponse({ status: "Selectors updated and history cleared" });
         } else if (request.action === 'togglePickerMode') {
             Picker.isActive() ? Picker.deactivate() : Picker.activate();
@@ -303,14 +359,11 @@
             revertLastAction();
             sendResponse({ status: "Revert action triggered" });
         }
-        return true; // Indicates an asynchronous response may be sent.
+        return true;
     });
 
-    // --- 5. MutationObserver for SPA Compatibility ---
     /**
-     * Starts a MutationObserver to handle dynamically loaded content on Single Page Applications (SPAs).
-     * This ensures that hiding rules are re-applied when the user navigates within a site
-     * without a full page reload. It is debounced to avoid performance issues.
+     * Starts a MutationObserver to handle dynamically loaded content on SPAs.
      */
     function startMutationObserver() {
         let debounceTimeout;
@@ -320,8 +373,11 @@
                 logger.log('DOM changed (debounced), re-applying rules.');
                 try {
                     const result = await chrome.storage.local.get(['selectors', 'isPersistenceEnabled']);
-                    if (result.isPersistenceEnabled !== false && result.selectors?.length > 0) {
-                        updateHiddenElements(result.selectors);
+                    const currentDomain = getCurrentDomain();
+                    const domainSelectors = result.selectors?.[currentDomain] || [];
+
+                    if (result.isPersistenceEnabled !== false && domainSelectors.length > 0) {
+                        updateHiddenElements(domainSelectors);
                     }
                 } catch (error) {
                     logger.error("Error re-applying rules in MutationObserver.", error);
@@ -335,5 +391,4 @@
     // --- Initial Kick-off ---
     initialize();
     startMutationObserver();
-
 })();
